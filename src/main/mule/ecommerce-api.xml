@@ -1,0 +1,466 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+    <http:listener-config name="ecommerce-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="ecommerce-api-config" api="ecommerce-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="ecommerce-api-main">
+        <http:listener config-ref="ecommerce-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="ecommerce-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="ecommerce-api-console">
+        <http:listener config-ref="ecommerce-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="ecommerce-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="delete:\baskets:ecommerce-api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="delete:\customers\(customerId):ecommerce-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="customerId">attributes.uriParams.'customerId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="delete:\orders\(orderId):ecommerce-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="orderId">attributes.uriParams.'orderId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\baskets:ecommerce-api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\customers:ecommerce-api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\orders:ecommerce-api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Orders: [
+    {
+      OrderId: "902-3159896-1390916",
+      PurchaseDate: "2017-01-20T19:49:35Z",
+      LastUpdateDate: "2017-01-20T19:49:35Z",
+      OrderStatus: "Pending",
+      FulfillmentChannel: "SellerFulfilled",
+      NumberOfItemsShipped: 0,
+      NumberOfItemsUnshipped: 0,
+      PaymentMethod: "Other",
+      PaymentMethodDetails: [
+        "CreditCard", 
+        "GiftCerificate"
+      ],
+      MarketplaceId: "ATVPDKIKX0DER",
+      ShipmentServiceLevelCategory: "Standard",
+      OrderType: "StandardOrder",
+      EarliestShipDate: "2017-01-20T19:51:16Z",
+      LatestShipDate: "2017-01-25T19:49:35Z",
+      IsBusinessOrder: false,
+      IsPrime: false,
+      IsAccessPointOrder: false,
+      IsGlobalExpressEnabled: false,
+      IsPremiumOrder: false,
+      IsSoldByAB: false,
+      IsIBA: false,
+      ShippingAddress: {
+        Name: "Michigan address",
+        AddressLine1: "1 Cross St.",
+        City: "Canton",
+        StateOrRegion: "MI",
+        PostalCode: "48817",
+        CountryCode: "US"
+      },
+      BuyerInfo: {
+        BuyerEmail: "user@example.com",
+        BuyerName: "John Doe",
+        BuyerTaxInfo: {
+          CompanyLegalName: "A Company Name"
+        },
+        PurchaseOrderNumber: "1234567890123"
+      }
+    }
+  ]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\orders\(orderId)\prices:ecommerce-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="orderId">attributes.uriParams.'orderId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+""]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\orders\(orderId)\shipment:ecommerce-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="orderId">attributes.uriParams.'orderId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Orders: [
+    {
+      OrderId: "902-3159896-1390916",
+      PurchaseDate: "2017-01-20T19:49:35Z",
+      LastUpdateDate: "2017-01-20T19:49:35Z",
+      OrderStatus: "Pending",
+      FulfillmentChannel: "SellerFulfilled",
+      NumberOfItemsShipped: 0,
+      NumberOfItemsUnshipped: 0,
+      PaymentMethod: "Other",
+      PaymentMethodDetails: [
+        "CreditCard", 
+        "GiftCerificate"
+      ],
+      MarketplaceId: "ATVPDKIKX0DER",
+      ShipmentServiceLevelCategory: "Standard",
+      OrderType: "StandardOrder",
+      EarliestShipDate: "2017-01-20T19:51:16Z",
+      LatestShipDate: "2017-01-25T19:49:35Z",
+      IsBusinessOrder: false,
+      IsPrime: false,
+      IsAccessPointOrder: false,
+      IsGlobalExpressEnabled: false,
+      IsPremiumOrder: false,
+      IsSoldByAB: false,
+      IsIBA: false,
+      ShippingAddress: {
+        Name: "Michigan address",
+        AddressLine1: "1 Cross St.",
+        City: "Canton",
+        StateOrRegion: "MI",
+        PostalCode: "48817",
+        CountryCode: "US"
+      },
+      BuyerInfo: {
+        BuyerEmail: "user@example.com",
+        BuyerName: "John Doe",
+        BuyerTaxInfo: {
+          CompanyLegalName: "A Company Name"
+        },
+        PurchaseOrderNumber: "1234567890123"
+      }
+    }
+  ]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\customers\(customerId):ecommerce-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="customerId">attributes.uriParams.'customerId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\orders\(orderId):ecommerce-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="orderId">attributes.uriParams.'orderId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Orders: [
+    {
+      OrderId: "902-3159896-1390916",
+      PurchaseDate: "2017-01-20T19:49:35Z",
+      LastUpdateDate: "2017-01-20T19:49:35Z",
+      OrderStatus: "Pending",
+      FulfillmentChannel: "SellerFulfilled",
+      NumberOfItemsShipped: 0,
+      NumberOfItemsUnshipped: 0,
+      PaymentMethod: "Other",
+      PaymentMethodDetails: [
+        "CreditCard", 
+        "GiftCerificate"
+      ],
+      MarketplaceId: "ATVPDKIKX0DER",
+      ShipmentServiceLevelCategory: "Standard",
+      OrderType: "StandardOrder",
+      EarliestShipDate: "2017-01-20T19:51:16Z",
+      LatestShipDate: "2017-01-25T19:49:35Z",
+      IsBusinessOrder: false,
+      IsPrime: false,
+      IsAccessPointOrder: false,
+      IsGlobalExpressEnabled: false,
+      IsPremiumOrder: false,
+      IsSoldByAB: false,
+      IsIBA: false,
+      ShippingAddress: {
+        Name: "Michigan address",
+        AddressLine1: "1 Cross St.",
+        City: "Canton",
+        StateOrRegion: "MI",
+        PostalCode: "48817",
+        CountryCode: "US"
+      },
+      BuyerInfo: {
+        BuyerEmail: "user@example.com",
+        BuyerName: "John Doe",
+        BuyerTaxInfo: {
+          CompanyLegalName: "A Company Name"
+        },
+        PurchaseOrderNumber: "1234567890123"
+      }
+    }
+  ]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\baskets:application\json:ecommerce-api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\customers:application\json:ecommerce-api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\orders:application\json:ecommerce-api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\orders\(orderId)\shipment:application\json:ecommerce-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="orderId">attributes.uriParams.'orderId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  errorMessage: "Message is incorrect or bad request",
+  statusCode: "400"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>

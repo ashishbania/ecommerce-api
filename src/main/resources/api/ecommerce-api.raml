@@ -1,0 +1,173 @@
+#%RAML 1.0
+title: ecommerce-api
+
+protocols:
+  - HTTPS
+  - HTTP
+version: 1.0
+
+traits:
+  errorResponse : !include /traits/errorTrait.raml
+
+/orders:
+  get:
+    is:
+      - errorResponse
+    description: get account for customer
+    queryParameters:
+      customerId:
+        type: string
+        required: true
+        example:
+          "cust12345"
+      BuyerEmail:
+        type: string
+        required: false
+        example:
+          "abc@xyz.com"
+      CreatedAfter:
+        type: date-only
+        required: false
+        example:
+          '2022-06-10'
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              !include examples/orders.json    
+  post:
+      is:
+        - errorResponse
+      description: "Create orders as per order Id"
+      body:
+        application/json:
+      responses:
+            204:
+                      
+  /{orderId}:
+    get:
+      is:
+        - errorResponse
+      description: "Fetch single order information for orderID"
+      responses:
+        200:
+          body:
+            application/json:
+              example:
+                !include examples/orders.json
+    
+    delete:
+      is:
+        - errorResponse
+      description: "Delete order based on orderId"
+      responses:
+        204:
+
+    /shipment:
+      get:
+        is:
+          - errorResponse
+        description: "Get shipment data based on orderId"
+        responses:
+          200:
+            body:
+              application/json:
+                example:
+                  !include examples/orders.json
+      post:
+        is:
+          - errorResponse
+        description: "Update the shipment status"
+        body:
+          application/json:
+            example:
+              !include examples/products.json
+        responses:
+          204:      
+                                  
+    /prices:
+      get:
+        is:
+          - errorResponse
+        description: "Fetch cost for the productID"
+        responses:
+          200:
+            body:
+              application/json:
+                example:
+                  !include examples/prices.json
+uses:
+  custType: customerLibrary.raml    
+/customers:
+  get:
+    is:
+      - errorResponse
+    description: "Fetch all customers"
+    queryParameters:
+      CustomerEmail:
+        type: string
+        required: false
+        example:
+          "abc@xyz.com"
+      CreatedAfter:
+        type: date-only
+        required: false
+        example:
+          '2022-06-10'
+    responses:
+      200:
+        body:
+          application/json:
+            type: custType.customerType
+  post:
+    is:
+        - errorResponse
+    description: "Create customer"
+    body:
+      application/json:
+        type: custType.customerType
+    responses:
+      204:
+  
+  /{customerId}:
+    get:
+      is:
+        - errorResponse
+      description: "Fetch by customer id"
+      responses:
+        200:
+          body:
+            application/json:
+              type: custType.customerType
+    delete:
+      is:
+      - errorResponse
+      description: "delete customer based on customer id"
+      responses:
+        204:
+          
+/baskets:
+  get:
+    is:
+      - errorResponse
+    description: 
+  post:
+    is:
+        - errorResponse
+    description: "Create baskets"
+    body:
+      application/json:
+        example:
+          !include examples/baskets.json
+    responses:
+      204:
+  delete:
+    is:
+      - errorResponse
+    description: "delete customer based on customer id"
+    responses:
+      204:
+    
+            
+

@@ -1,0 +1,54 @@
+#%RAML 1.0 Library
+usage:
+
+types:
+  customerType:
+    properties:
+      firstName:
+        type: string
+        required: true
+        example: Ashish
+      lastName:
+        type: string
+        required: true
+        example: Bania
+      address:
+        type: Address[]
+      phone:
+        type: Phone[]
+
+  Address:
+    properties:
+      street:
+        type: string
+        required: true
+        example: 12345 Main St
+      city:
+        type: string
+        required: true
+        example: Charlotte
+      state:
+        type: string
+        required: true
+        example:
+          North Carolina
+      zip:
+        type: string
+        required: true
+        example: '28031'
+      county:
+        type: string
+        required: true
+        example: Mcklenburg
+
+  Phone:
+    properties:
+      phoneNumber:
+        type: string
+        required: true
+        example:
+          +1 123 456 7890
+      phoneType:
+        enum: [Mobile, Landline]
+        example:
+          Mobile
